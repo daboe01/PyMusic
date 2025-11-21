@@ -1,6 +1,13 @@
 # 🎵 PyMusic
 
+
+
+
 A lightweight, web-based music streaming application built with Python (Flask). It mimics the Spotify UI to provide a seamless listening experience without ads.
+
+## ✨ Screenshots
+<img width="550" height="300" alt="Screenshot 2025-11-21 194453" src="https://github.com/user-attachments/assets/76b35f2c-ab38-4111-a5ad-db08272225f1" />
+<img width="550" height="300" alt="Screenshot 2025-11-21 194406" src="https://github.com/user-attachments/assets/d9f5a366-ccbf-4d70-b1f5-57d13194b41f" />
 
 ## ✨ Features
 
