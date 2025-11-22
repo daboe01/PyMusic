@@ -57,7 +57,8 @@ A lightweight, web-based music streaming application built with Python (Flask). 
 
 4.  Open your browser and go to:
     `localhost:499`
-
+5.  The default user:
+   `admin` password: `mko09ijn`
 ## ⚖️ Disclaimer
 
 This project is for **educational purposes only**. It demonstrates how to handle API requests, audio streaming, and frontend-backend integration in Python. 
