@@ -20,11 +20,15 @@ def search_deezer(query):
         songs = []
         if 'data' in data:
             for item in data['data']:
+                # Safety check for artist info
+                artist_name = item.get('artist', {}).get('name', 'Unknown')
+                artist_id = item.get('artist', {}).get('id', 0)
+                
                 songs.append({
                     'id': item['id'],
                     'title': item['title'],
-                    'artist': item['artist']['name'],
-                    'artist_id': item['artist']['id'], # NEEDED FOR RECOMMENDATIONS
+                    'artist': artist_name,
+                    'artist_id': artist_id,
                     'album': item['album']['title'],
                     'cover': item['album']['cover_medium'], 
                     'cover_xl': item['album']['cover_xl'],
@@ -32,48 +36,57 @@ def search_deezer(query):
                 })
         return songs
     except Exception as e:
+        print(f"Deezer Search Error: {e}")
         return []
 
 def get_recommendations(artist_id):
     """
     Fetches tracks from similar artists.
+    Optimized to be faster (fewer requests).
     """
     try:
-        # 1. Get Related Artists
-        rel_url = f"https://api.deezer.com/artist/{artist_id}/related"
+        if not artist_id or artist_id == 'undefined':
+            return []
+
+        # 1. Get Related Artists (Limit to 3 to save time)
+        rel_url = f"https://api.deezer.com/artist/{artist_id}/related?limit=3"
         rel_data = requests.get(rel_url).json()
         
         songs = []
         artists_to_check = []
         
-        # Add the original artist to the mix
+        # Always include the original artist to ensure relevance
         artists_to_check.append(artist_id)
         
-        # Add up to 4 related artists
         if 'data' in rel_data:
-            for art in rel_data['data'][:4]:
+            for art in rel_data['data']:
                 artists_to_check.append(art['id'])
         
         # 2. Get Top Tracks for these artists
+        # We assume the first result is the most relevant
         for aid in artists_to_check:
-            top_url = f"https://api.deezer.com/artist/{aid}/top?limit=3"
-            top_data = requests.get(top_url).json()
-            if 'data' in top_data:
-                for item in top_data['data']:
-                    songs.append({
-                        'id': item['id'],
-                        'title': item['title'],
-                        'artist': item['artist']['name'],
-                        'artist_id': item['artist']['id'],
-                        'album': item['album']['title'],
-                        'cover': item['album']['cover_medium'], 
-                        'cover_xl': item['album']['cover_xl'],
-                        'duration': item['duration']
-                    })
+            top_url = f"https://api.deezer.com/artist/{aid}/top?limit=5"
+            try:
+                top_data = requests.get(top_url, timeout=2).json() # 2s timeout to prevent lag
+                if 'data' in top_data:
+                    for item in top_data['data']:
+                        songs.append({
+                            'id': item['id'],
+                            'title': item['title'],
+                            'artist': item['artist']['name'],
+                            'artist_id': item['artist']['id'],
+                            'album': item.get('album', {}).get('title', 'Single'),
+                            'cover': item.get('album', {}).get('cover_medium', ''), 
+                            'cover_xl': item.get('album', {}).get('cover_xl', ''),
+                            'duration': item['duration']
+                        })
+            except:
+                continue
         
         # Shuffle to make it feel like a radio
         random.shuffle(songs)
-        return songs
+        # Return max 15 songs
+        return songs[:15]
     except Exception as e:
         print(f"Rec Error: {e}")
         return []
@@ -102,8 +115,9 @@ def get_chart():
 
 def get_youtube_stream_url(artist, title):
     query = f"{artist} - {title} audio"
+    # iPhone Support (M4A) + IPv4 forcing
     ydl_opts = {
-        'format': 'bestaudio[ext=m4a]/best', # iPhone Fix
+        'format': 'bestaudio[ext=m4a]/best',
         'quiet': True,
         'noplaylist': True,
         'geo_bypass': True,
@@ -116,7 +130,7 @@ def get_youtube_stream_url(artist, title):
             video = info['entries'][0] if 'entries' in info else info
             return {'url': video['url']}
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"YT Error: {e}")
             return None
 
 def clean_string(s):
@@ -126,7 +140,7 @@ def clean_string(s):
 
 def fetch_lyrics(artist, title):
     search_url = "https://lrclib.net/api/search"
-    headers = {'User-Agent': 'PySpotifyClone/1.0'}
+    headers = {'User-Agent': 'PyMusic/1.0'}
     params = {'artist_name': artist, 'track_name': title}
     try:
         resp = requests.get(search_url, params=params, headers=headers)
@@ -186,7 +200,9 @@ def chart():
 def recommend():
     if not session.get('logged_in'): return jsonify([])
     artist_id = request.args.get('artist_id')
-    if not artist_id: return jsonify([])
+    # Validate input
+    if not artist_id or artist_id == "undefined": 
+        return jsonify([])
     return jsonify(get_recommendations(artist_id))
 
 @app.route('/play')
@@ -222,6 +238,5 @@ def stream_proxy():
         return f"Error: {e}", 500
 
 if __name__ == '__main__':
-    # CHANGED PORT TO 499
-    # Note: On Linux/Mac, ports < 1024 require sudo. On Windows, this is fine.
+    # Port 499 as requested
     app.run(host='0.0.0.0', debug=True, port=4999)

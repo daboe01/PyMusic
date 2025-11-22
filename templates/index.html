@@ -5,15 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#121212">
-    <title>PySpotify</title>
+    <title>PyMusic</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
     <div class="container">
+        <!-- Sidebar -->
         <div class="sidebar">
-            <div class="logo"><i class="fab fa-spotify"></i> PySpotify</div>
+            <div class="logo"><i class="fas fa-music"></i> PyMusic</div>
             <ul>
                 <li id="nav-home" class="active" onclick="showHome()"><i class="fas fa-home"></i> Home</li>
                 <li id="nav-search" onclick="focusSearch()"><i class="fas fa-search"></i> Search</li>
@@ -30,7 +31,6 @@
 
             <div class="content-split" id="contentSplit">
                 <div class="results-section" id="resultsSection">
-                    <!-- Sections for Dynamic Content -->
                     <h2 id="sectionTitle">Home</h2>
                     
                     <div id="recentsContainer" class="recents-wrapper" style="display:none;">
@@ -111,7 +111,7 @@
         let currentLyrics = []; 
         let currentSong = null; 
         let isLyricsOpen = window.innerWidth > 768;
-        let playbackQueue = []; // THE QUEUE
+        let playbackQueue = [];
 
         window.onload = () => {
             initMobileView();
@@ -133,14 +133,13 @@
         function showHome() {
             updateNavHighlight('home');
             document.getElementById('sectionTitle').innerText = "Home";
-            // Toggle sections
             document.getElementById('recentsContainer').style.display = 'block';
             document.getElementById('recommendationsContainer').style.display = 'block';
             document.getElementById('chartTitle').style.display = 'block';
             document.getElementById('chartTitle').innerText = "Top Charts";
             
             loadRecents();
-            loadRecommendations(); // NEW: Load Made For You
+            loadRecommendations(); // Fixes are inside here
             loadCharts();
         }
 
@@ -150,7 +149,7 @@
             document.getElementById('recentsContainer').style.display = 'none';
             document.getElementById('recommendationsContainer').style.display = 'none';
             document.getElementById('chartTitle').style.display = 'none';
-            renderSongList(playbackQueue, true); // True = isQueueView
+            renderSongList(playbackQueue, true);
         }
         
         function focusSearch() { updateNavHighlight('search'); document.getElementById('searchInput').focus(); }
@@ -167,13 +166,8 @@
         // --- QUEUE LOGIC ---
         function addToQueue(song, event) {
             if(event) event.stopPropagation();
-            // Check if already in queue to prevent duplicates (optional)
-            // if(playbackQueue.some(s => s.id === song.id)) return;
-            
             playbackQueue.push(song);
             updateQueueUI();
-            
-            // Visual feedback
             const btn = event ? event.target : null;
             if(btn) {
                 btn.className = "fas fa-check like-btn";
@@ -193,40 +187,31 @@
 
         function playNextInQueue(isUserAction = false) {
             if (playbackQueue.length > 0) {
-                const nextSong = playbackQueue.shift(); // Remove first item
+                const nextSong = playbackQueue.shift();
                 updateQueueUI();
                 loadSong(nextSong);
-                // If we are looking at the queue, refresh the list
                 if(document.getElementById('nav-queue').classList.contains('active')) {
                     renderSongList(playbackQueue, true);
                 }
             } else {
-                if(isUserAction) {
-                    // User clicked next but queue empty -> Do nothing or restart
-                    alert("End of Queue");
-                } else {
-                    // Auto-play: Fetch a recommendation based on current song
-                    playAutoRecommendation();
-                }
+                if(isUserAction) alert("End of Queue");
+                else playAutoRecommendation();
             }
         }
 
         async function playAutoRecommendation() {
             if(!currentSong || !currentSong.artist_id) return;
-            console.log("Queue empty. Fetching auto-recommendation...");
             try {
                 const res = await fetch(`/recommend?artist_id=${currentSong.artist_id}`);
                 const data = await res.json();
                 if(data && data.length > 0) {
-                    // Pick a random one from the top 3
                     const next = data[Math.floor(Math.random() * data.length)];
-                    // Add others to queue? No, just play one to keep infinite radio logic simple
                     loadSong(next);
                 }
-            } catch(e) { console.error("Autoplay failed", e); }
+            } catch(e) {}
         }
 
-        // --- RECOMMENDATIONS LOGIC ---
+        // --- RECOMMENDATIONS LOGIC (FIXED) ---
         async function loadRecommendations() {
             const recents = getRecents();
             const container = document.getElementById('recommendationsContainer');
@@ -234,12 +219,18 @@
             
             if(recents.length === 0) { container.style.display = 'none'; return; }
             
-            // Use the most recent song's artist
-            const lastSong = recents[0];
-            if(!lastSong.artist_id) { container.style.display = 'none'; return; }
+            // Check if the most recent song has an artist_id
+            // Use the first song that DOES have an ID
+            const validSong = recents.find(s => s.artist_id);
+            
+            if(!validSong) { 
+                // Old data in local storage? Hide section until they play a new song.
+                container.style.display = 'none'; 
+                return; 
+            }
             
             try {
-                const res = await fetch(`/recommend?artist_id=${lastSong.artist_id}`);
+                const res = await fetch(`/recommend?artist_id=${validSong.artist_id}`);
                 const data = await res.json();
                 
                 if(data.length === 0) { container.style.display = 'none'; return; }
@@ -262,7 +253,7 @@
             list.innerHTML = '';
             
             if (isQueueView && songs.length === 0) {
-                list.innerHTML = '<p style="text-align:center; margin-top:20px;">Queue is empty.<br>Go add some songs!</p>';
+                list.innerHTML = '<p style="text-align:center; margin-top:20px;">Queue is empty.</p>';
                 return;
             }
             if (!isQueueView && songs.length === 0) { list.innerHTML = '<p>No songs found.</p>'; return; }
@@ -276,11 +267,11 @@
                 const item = document.createElement('div');
                 item.className = 'song-item';
                 
-                // Queue remove button vs Add to queue button
                 let queueAction = '';
                 if (isQueueView) {
                     queueAction = `<i class="fas fa-trash like-btn" onclick="removeFromQueue(${index}, event)"></i>`;
                 } else {
+                    // Properly escape quotes for the onclick handler
                     queueAction = `<i class="fas fa-list-ul like-btn" title="Add to Queue" onclick="addToQueue(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(song))}')), event)"></i>`;
                 }
 
@@ -308,9 +299,6 @@
         }
 
         // --- CORE PLAYER ---
-        // (loadCharts, performSearch, loadSong, getRecents, addToRecents, loadRecents are same as before)
-        // Except loadSong now calls playNextInQueue when ended
-        
         async function loadCharts() {
             const list = document.getElementById('resultsList');
             list.innerHTML = '<div class="loading-text">Loading...</div>';
@@ -327,81 +315,6 @@
             try { const res = await fetch(`/search?q=${encodeURIComponent(q)}`); renderSongList(await res.json()); } catch(e){}
         }
         
-        // ... (Insert getLikedSongs, toggleLike, toggleLikeCurrent, updatePlayerLikeBtn here from previous code) ...
-        // ... (Insert getRecents, addToRecents, loadRecents here from previous code) ...
-
-        // IMPORTANT: Modified Audio End Event
-        audioPlayer.onended = () => {
-            playNextInQueue();
-        };
-
-        // ... (Insert loadSong, parseLyrics, renderLyrics, etc from previous code) ...
-        // Re-pasting loadSong for clarity on Recents
-        async function loadSong(song) {
-            currentSong = song;
-            addToRecents(song);
-            
-            document.getElementById('trackName').innerText = song.title;
-            document.getElementById('artistName').innerText = "Downloading...";
-            document.getElementById('albumArt').src = song.cover_xl;
-            loadingOverlay.style.display = 'flex';
-            updatePlayerLikeBtn();
-
-            lyricsContainer.innerHTML = '<div class="loading-lyrics">Searching...</div>';
-            currentLyrics = [];
-            updatePlayButton(false);
-
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: song.title, artist: song.artist, album: song.album,
-                    artwork: [{ src: song.cover_xl, sizes: '512x512', type: 'image/jpeg' }]
-                });
-                // Add Next Track handler for Media Session
-                navigator.mediaSession.setActionHandler('nexttrack', () => playNextInQueue(true));
-            }
-
-            try {
-                const audioRes = await fetch(`/play?artist=${encodeURIComponent(song.artist)}&title=${encodeURIComponent(song.title)}`);
-                const audioData = await audioRes.json();
-                if(audioData.error) throw new Error("Error");
-
-                document.getElementById('artistName').innerText = song.artist;
-                audioPlayer.src = `/stream_proxy?url=${encodeURIComponent(audioData.url)}`;
-                audioPlayer.play().catch(e => console.log("Autoplay blocked"));
-
-                const lyricsRes = await fetch(`/lyrics?artist=${encodeURIComponent(song.artist)}&title=${encodeURIComponent(song.title)}`);
-                const lyData = await lyricsRes.json();
-                if (lyData.lyrics) { parseLyrics(lyData.lyrics); renderLyrics(); }
-                else lyricsContainer.innerHTML = '<div class="lyrics-placeholder">No synced lyrics.</div>';
-            } catch (e) {
-                document.getElementById('artistName').innerText = song.artist;
-                loadingOverlay.style.display = 'none';
-                // If song fails, try next in queue
-                setTimeout(() => playNextInQueue(), 2000); 
-            }
-        }
-        
-        // Mobile Logic
-        function initMobileView() { if (window.innerWidth <= 768) toggleLyricsPanel(false); }
-        function toggleLyricsPanel(force) {
-             isLyricsOpen = force!==undefined ? force : !isLyricsOpen;
-             const s = document.getElementById('lyricsSection');
-             const split = document.getElementById('contentSplit');
-             const btn = document.getElementById('lyricsToggleBtn');
-             if(isLyricsOpen) {
-                 s.style.display='flex'; setTimeout(()=>s.classList.remove('hidden'),10);
-                 if(window.innerWidth>768) split.classList.remove('expanded');
-                 else s.classList.add('mobile-overlay');
-                 btn.classList.add('active');
-             } else {
-                 s.classList.add('hidden'); s.classList.remove('mobile-overlay');
-                 setTimeout(()=>s.style.display='none',300);
-                 split.classList.add('expanded');
-                 btn.classList.remove('active');
-             }
-        }
-
-        // Standard Helpers
         function getLikedSongs() { return JSON.parse(localStorage.getItem('likedSongs') || '[]'); }
         function toggleLike(event, songStr) {
             event.stopPropagation(); const song=JSON.parse(decodeURIComponent(songStr)); const list=getLikedSongs();
@@ -431,6 +344,70 @@
                 d.onclick=()=>loadSong(s); c.appendChild(d);
             });
         }
+
+        audioPlayer.onended = () => { playNextInQueue(); };
+
+        async function loadSong(song) {
+            currentSong = song;
+            addToRecents(song);
+            
+            document.getElementById('trackName').innerText = song.title;
+            document.getElementById('artistName').innerText = "Downloading...";
+            document.getElementById('albumArt').src = song.cover_xl;
+            loadingOverlay.style.display = 'flex';
+            updatePlayerLikeBtn();
+
+            lyricsContainer.innerHTML = '<div class="loading-lyrics">Searching...</div>';
+            currentLyrics = [];
+            updatePlayButton(false);
+
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: song.title, artist: song.artist, album: song.album,
+                    artwork: [{ src: song.cover_xl, sizes: '512x512', type: 'image/jpeg' }]
+                });
+                navigator.mediaSession.setActionHandler('nexttrack', () => playNextInQueue(true));
+            }
+
+            try {
+                const audioRes = await fetch(`/play?artist=${encodeURIComponent(song.artist)}&title=${encodeURIComponent(song.title)}`);
+                const audioData = await audioRes.json();
+                if(audioData.error) throw new Error("Error");
+
+                document.getElementById('artistName').innerText = song.artist;
+                audioPlayer.src = `/stream_proxy?url=${encodeURIComponent(audioData.url)}`;
+                audioPlayer.play().catch(e => console.log("Autoplay blocked"));
+
+                const lyricsRes = await fetch(`/lyrics?artist=${encodeURIComponent(song.artist)}&title=${encodeURIComponent(song.title)}`);
+                const lyData = await lyricsRes.json();
+                if (lyData.lyrics) { parseLyrics(lyData.lyrics); renderLyrics(); }
+                else lyricsContainer.innerHTML = '<div class="lyrics-placeholder">No synced lyrics.</div>';
+            } catch (e) {
+                document.getElementById('artistName').innerText = song.artist;
+                loadingOverlay.style.display = 'none';
+                setTimeout(() => playNextInQueue(), 2000); 
+            }
+        }
+        
+        function initMobileView() { if (window.innerWidth <= 768) toggleLyricsPanel(false); }
+        function toggleLyricsPanel(force) {
+             isLyricsOpen = force!==undefined ? force : !isLyricsOpen;
+             const s = document.getElementById('lyricsSection');
+             const split = document.getElementById('contentSplit');
+             const btn = document.getElementById('lyricsToggleBtn');
+             if(isLyricsOpen) {
+                 s.style.display='flex'; setTimeout(()=>s.classList.remove('hidden'),10);
+                 if(window.innerWidth>768) split.classList.remove('expanded');
+                 else s.classList.add('mobile-overlay');
+                 btn.classList.add('active');
+             } else {
+                 s.classList.add('hidden'); s.classList.remove('mobile-overlay');
+                 setTimeout(()=>s.style.display='none',300);
+                 split.classList.add('expanded');
+                 btn.classList.remove('active');
+             }
+        }
+
         function parseLyrics(s){ const l=s.split('\n'); const r=/^\[(\d{2}):(\d{2}\.\d{2})\](.*)/; currentLyrics=[]; l.forEach(x=>{const m=x.match(r); if(m&&m[3].trim()) currentLyrics.push({time:parseInt(m[1])*60+parseFloat(m[2]),text:m[3].trim()});}); }
         function renderLyrics(){ const c=lyricsContainer; c.innerHTML=''; currentLyrics.forEach((l,i)=>{const p=document.createElement('p'); p.innerText=l.text; p.id=`line-${i}`; p.className='lyric-line'; p.onclick=()=>{audioPlayer.currentTime=l.time}; c.appendChild(p);}); const s=document.createElement('div'); s.style.height="50%"; c.appendChild(s); }
         function syncLyrics(t){ if(!currentLyrics.length)return; let idx=-1; for(let i=0;i<currentLyrics.length;i++){if(t>=currentLyrics[i].time)idx=i;else break;} if(idx!==-1){document.querySelectorAll('.lyric-line').forEach(e=>e.classList.remove('active')); const el=document.getElementById(`line-${idx}`); if(el){el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'center'});}} }
