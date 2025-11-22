@@ -3,8 +3,12 @@
 A lightweight, web-based music streaming application built with Python (Flask). It mimics the Spotify UI to provide a seamless listening experience without ads.
 
 ## ✨ Screenshots
-<img width="550" height="300" alt="Screenshot 2025-11-21 194453" src="https://github.com/user-attachments/assets/76b35f2c-ab38-4111-a5ad-db08272225f1" />
-<img width="550" height="300" alt="Screenshot 2025-11-21 194406" src="https://github.com/user-attachments/assets/d9f5a366-ccbf-4d70-b1f5-57d13194b41f" />
+<img width="465" height="247" alt="Screenshot 2025-11-22 135458" src="https://github.com/user-attachments/assets/b6b607a2-34fb-44e3-b0f6-1f347098144b" />
+<img width="465" height="247" alt="Screenshot 2025-11-22 135527" src="https://github.com/user-attachments/assets/d462da87-b235-4ffc-95aa-ec4fda3f11be" />
+<img width="465" height="247" alt="Screenshot 2025-11-22 135544" src="https://github.com/user-attachments/assets/430da37f-78b8-44fb-9090-e566f5aab959" />
+<img width="465" height="247" alt="Screenshot 2025-11-22 135649" src="https://github.com/user-attachments/assets/518438bd-87bc-4a79-937f-44cb887334f3" />
+<img width="465" height="247" alt="Screenshot 2025-11-22 135615" src="https://github.com/user-attachments/assets/60f821bd-69df-4c26-b28c-f4e1b387eec6" />
+
 
 ## ✨ Features
 
@@ -52,7 +56,7 @@ A lightweight, web-based music streaming application built with Python (Flask). 
     ```
 
 4.  Open your browser and go to:
-    `localhost:5000`
+    `localhost:499`
 
 **Note:** On the first run, an admin account is created with the username `admin` and a default password. You will be prompted to change this password upon your first login.
 
