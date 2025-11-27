@@ -1,0 +1,12 @@
+__pycache__/
+venv/
+.env
+.DS_Store
+*.pycpymusic.db
+__pycache__/
+*.pyc
+
+*.db
+pymusic.db
+
+song_cache/

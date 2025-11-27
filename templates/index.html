@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#121212">
+    <title>PyMusic</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo"><i class="fas fa-music"></i> PyMusic</div>
+            <ul>
+                <li id="nav-home" class="active" onclick="showHome()"><i class="fas fa-home"></i> Home</li>
+                <li id="nav-search" onclick="focusSearch()"><i class="fas fa-search"></i> Search</li>
+                <li id="nav-library" onclick="showFavourites()"><i class="fas fa-heart"></i> Favourites</li>
+                <li id="nav-queue" onclick="showQueue()"><i class="fas fa-list-ul"></i> Queue <span id="queueCount" style="display:none; background:var(--primary); color:black; border-radius:50%; padding:2px 6px; font-size:10px; margin-left:5px;">0</span></li>
+                
+                <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
+                    <li style="cursor: default; color: #fff; font-size: 12px; margin-bottom: 10px;">Logged in as: <strong>{{ username }}</strong></li>
+                    {% if role == 'admin' %}
+                    <li onclick="window.location.href='/admin'"><i class="fas fa-users-cog"></i> Admin</li>
+                    {% endif %}
+                    <li onclick="window.location.href='/logout'"><i class="fas fa-sign-out-alt"></i> Logout</li>
+                </div>
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <div class="search-bar-container">
+                <input type="text" id="searchInput" placeholder="Search songs, artists...">
+                <button onclick="performSearch()"><i class="fas fa-search"></i></button>
+            </div>
+
+            <div class="content-split" id="contentSplit">
+                <div class="results-section" id="resultsSection">
+                    <h2 id="sectionTitle">Home</h2>
+
+                    <div id="recentsContainer" class="recents-wrapper" style="display:none;">
+                        <h3>Recently Played</h3>
+                        <div id="recentsList" class="horizontal-scroll"></div>
+                    </div>
+                    <div id="recommendationsContainer" class="recents-wrapper" style="display:none;">
+                        <h3>Made For You</h3>
+                        <div id="recommendationsList" class="horizontal-scroll"></div>
+                    </div>
+                    <h3 id="chartTitle">Top Charts</h3>
+                    <div id="resultsList" class="song-list">
+                        <div class="loading-text">Loading...</div>
+                    </div>
+                </div>
+                <div class="lyrics-section" id="lyricsSection">
+                    <h2>Lyrics</h2>
+                    <div id="lyricsContainer" class="lyrics-container">
+                        <p class="lyrics-placeholder">Play a song to see lyrics</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Bar -->
+    <div class="player-bar">
+        <div class="now-playing">
+            <div class="img-container">
+                <img id="albumArt" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
+                <div id="loadingOverlay" class="loading-overlay" style="display:none;"><i class="fas fa-spinner fa-spin"></i></div>
+            </div>
+            <div class="track-info">
+                <div id="trackName" class="track-name">Not Playing</div>
+                <div id="artistName" class="artist-name"></div>
+            </div>
+            <i id="playerLikeBtn" class="far fa-heart like-btn-player" onclick="toggleLikeCurrent()"></i>
+        </div>
+        
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button onclick="seek(-10)" class="step"><i class="fas fa-backward"></i></button>
+                <button id="playPauseBtn" onclick="togglePlay()"><i class="fas fa-play-circle"></i></button>
+                <button onclick="playNextInQueue(true)" class="step"><i class="fas fa-forward"></i></button>
+            </div>
+            <div class="progress-container">
+                <span id="currentTime">0:00</span>
+                <input type="range" id="progressBar" value="0" max="100">
+                <span id="duration">0:00</span>
+            </div>
+        </div>
+
+        <div class="volume-controls">
+            <!-- Volume Slider -->
+            <div class="vol-slider-container">
+                <i class="fas fa-volume-down" style="font-size:12px; color:#aaa; margin-right:5px;"></i>
+                <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+            </div>
+            <i id="lyricsToggleBtn" class="fas fa-microphone lyrics-icon active" onclick="toggleLyricsPanel()" style="margin-left: 15px;"></i>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" onclick="ctxAddToQueue()"><i class="fas fa-list-ul"></i> Add to Queue</div>
+        <div class="context-menu-item" onclick="ctxToggleLike()"><i class="fas fa-heart"></i> Toggle Like</div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="showHome()"><i class="fas fa-home"></i><span>Home</span></div>
+        <div class="nav-item" onclick="focusSearch()"><i class="fas fa-search"></i><span>Search</span></div>
+        <div class="nav-item" onclick="showFavourites()"><i class="fas fa-heart"></i><span>Lib</span></div>
+        <div class="nav-item" onclick="showQueue()"><i class="fas fa-list-ul"></i><span>Queue</span></div>
+    </div>
+
+    <audio id="audioPlayer" playsinline></audio>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
